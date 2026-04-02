@@ -15,15 +15,18 @@ A Python library for computing with and visualizing elliptic curves, with a focu
 
 ```
 .
-├── ecv.py                  # Main visualization module (matplotlib-based)
-├── ecfp.py                 # Elliptic curves over finite fields (Fp)
-├── qfs.py                  # Quadratic forms and class groups
-├── nt.py                   # Number theory utilities
-├── ringclasses.py          # Algebraic structures (polynomials, matrices)
-├── modularpolynomials.py   # Hilbert and Atkin modular polynomial utilities
-├── data/
-│   ├── hilbpolys.json      # Precomputed Hilbert class polynomials
-│   └── atkinpolys.json     # Precomputed Atkin modular polynomials
+├── code/
+│   ├── ecv.py                  # Main visualization module (matplotlib-based)
+│   ├── ecfp.py                 # Elliptic curves over finite fields (Fp)
+│   ├── qfs.py                  # Quadratic forms and class groups
+│   ├── nt.py                   # Number theory utilities
+│   ├── ringclasses.py          # Algebraic structures (polynomials, matrices)
+│   ├── modularpolynomials.py   # Hilbert and Atkin modular polynomial utilities
+│   └── data/
+│       ├── hilbpolys.json      # Precomputed Hilbert class polynomials
+│       ├── atkinpolys.json     # Precomputed Atkin modular polynomials
+│       ├── jcoefs.json         # j-invariant coefficients
+│       └── ssfp_isog_cycles_10b.json  # Supersingular isogeny cycle data
 └── requirements.txt
 ```
 
@@ -46,11 +49,11 @@ A Python library for computing with and visualizing elliptic curves, with a focu
    pip install -r requirements.txt
    ```
 
-3. Make sure the `data/` folder is present in the project root (it contains precomputed polynomial data required by `modularpolynomials.py`).
+3. Make sure the `code/data/` folder is present (it contains precomputed polynomial data required by `modularpolynomials.py`).
 
 ## Usage
 
-Import the visualization module and start exploring:
+Navigate into the `code/` directory, then import the visualization module:
 
 ```python
 from ecv import make_both_pics, IsogenyClassFp
