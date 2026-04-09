@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from nt import discfac
 from qfs import *
-from ecfp import mw_gens, get_j_to_qfs_dict,trfr_to_models,frobmat
+from ecfp import *
 from modularpolynomials import *
-
 
 def n_to_color(n):
     n = n %17
@@ -180,7 +179,6 @@ def x0_iso_pic(qflist,l):
         ax.scatter(x = [x],y=[y],c = [c1],s=[8])
     return fig, ax
         
-
 
 class IsogenyClassFp:
     def __init__(self,a:int,p:int):

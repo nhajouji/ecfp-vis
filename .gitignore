@@ -1,4 +1,5 @@
 # Python
+# Ignore compiled bytecode and pycache directories
 __pycache__/
 *.py[cod]
 *.pyo
@@ -17,7 +18,8 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
+# Testing notebook — not intended for distribution
+notebooks/testing.ipynb
 
 # IDE
 .vscode/

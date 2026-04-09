@@ -3,6 +3,27 @@ from ringclasses import *
 from modularpolynomials import *
 from qfs import *
 
+
+import json
+
+with open('data/ssfp_pc_bij.json', 'r') as f:
+    ssfpdata_raw = json.load(f)
+ss_precomputed_dictionary = {int(p):ssfpdata_raw[p] for p in ssfpdata_raw}
+
+def ss_primes_available():
+    return [p for p in ss_precomputed_dictionary]
+
+def get_precomputed_ssdict(p):
+    if p not in ss_precomputed_dictionary:
+        raise ValueError(f'No data for p={p}')
+    data = ss_precomputed_dictionary[p]
+    dic = {}
+    for pair in data:
+        js = (pair[0][0],pair[0][1])
+        qf = (pair[1][0],pair[1][1],pair[1][2])
+        dic[js]=qf
+    return dic
+
 def j_to_fg(j:int,char = 0):
     if j == 0:
         return (0,1)
@@ -16,6 +37,20 @@ def j_to_fg(j:int,char = 0):
         else:
             return (f % char, g% char)
         
+def sig_to_fg(sig:tuple[int,int],p,d):
+    j,s = sig
+    f,g = j_to_fg(j,p)
+    if g == 0:
+        if s == 1:
+            return (1,0)
+        else:
+            return (-1,0)
+    elif quad_rec(g,p)==s:
+        return (f,g)
+    else:
+        return ((d*d*f)%p,(d*d*d*g)%p)
+
+
 def fg_to_j(fg:tuple[int,int],char =0):
     f,g = fg
     if f == 0 or char>0 and f%char ==0:
@@ -40,6 +75,14 @@ def fg_to_j(fg:tuple[int,int],char =0):
                 raise ZeroDivisionError('Singular curve')
             jdeninv = pow(jden,-1,char)
             return (jnum*jdeninv)%char
+
+def fg_to_sig(fg,p):
+    j = fg_to_j(fg,p)
+    f,g = fg
+    if g %p == 0:
+        return (j%p,quad_rec(f,p))
+    else:
+        return (j%p,quad_rec(g,p))
 
 ## This is a helper function for the next two
 def cubic_qrs(fg:tuple[int,int],p:int)->list[int]:
@@ -282,6 +325,79 @@ def get_j_to_qfs_dict(a:int,p:int,j0=None):
             c = c//l
     return j_to_qf
 
+def sig_to_qfs_dict(a:int,p:int):
+    # Deal with supersingular class separately
+    if a == 0:
+        if p in ss_precomputed_dictionary:
+            return get_precomputed_ssdict(p)
+        else:
+            raise ValueError('No precomputed data for this prime')
+    d = a*a-4*p
+    # For small d we can just look up answer
+    if d in hilb_polys_dict and len(hilb_polys_dict[d])==2:
+        # Deal with the cases where we have conductor greater than 1 by hand
+        if d == -12:
+            return {0:(1,1,1),(54000 %p):(1,0,3)}
+        elif d == -16:
+            return {(1728%p):(1,0,1),(287496 %p):(1,0,4)}
+        elif d == -27:
+            return {0:(1,1,1),(-12288000 %p):(1,1,7)}
+        elif d == -28:
+            return {(-3375%p):(1,1,2),(16581375 %p):(1,0,7)}
+        else:
+            qf = get_qfs_strict(d)[0]
+            j0 = trfr_to_js(a,p)[0]
+            return {j0:qf}
+    # Check discriminant is negative
+    if d >= 0:
+        raise ValueError('a is not a trace of Frobenius of ordinary curve mod p')
+    # Find objects with minimal endomorphism rings
+    leaves = trfr_to_leaves(a,p)
+    # A j-invariant can be specified as the image of ring of integers
+    j0 = leaves[0]
+    # Look up the levels where we have isogenies of degree l 
+    qfdata = d_to_ssl_cycle_data(d)
+    # This picks out the largest subgroup among levels
+    ml = max([len(qfdata[qf]) for qf in qfdata])
+    qf0 = [qf for qf in qfdata if len(qfdata[qf])==ml][0]
+    l0 = [l for l in qfdata[qf0] if isinstance(qfdata[qf0][l],list)][0]
+    qf_cycle = qfdata[qf0][l0]
+    j_cycle = all_ssl_cycles_from_jp(j0,p)[l0]
+    qf_to_j = {}
+    j_to_qf = {}
+    for qj in zip(qf_cycle,j_cycle):
+        qf,j = qj
+        qf_to_j[qf]= j
+        j_to_qf[j]=qf
+    for qf1 in qfdata:
+        j1 = qf_to_j[qf1]
+        for l in qfdata[qf1]:
+            if l !=l0:
+                qf2 = qfdata[qf1][l]
+                j2s = list({j2 for j2 in fp_isog_codomains(j1,l,p) if j2 not in j_to_qf})
+                if len(j2s)==1:
+                    j2 = j2s[0]
+                    qf_to_j[qf2]=j2
+                    j_to_qf[j2]=qf2
+    c= discfac(a**2-4*p)[1]
+    if c == 1:
+        return j_to_qf
+    for l in atkin_polys_dict:
+        while c % l == 0:
+            newassignments = {}
+            for j0 in j_to_qf:
+                j1s = list({j1 for j1 in fp_isog_codomains(j0,l,p) if 
+                            j1 not in j_to_qf and j1 not in newassignments})
+                if len(j1s)==1:
+                    j1 = j1s[0]
+                    q0 = j_to_qf[j0]
+                    q1s = qf_parents(q0,l)
+                    if len(q1s)==1:
+                        q1 = q1s[0]
+                        newassignments[j1]=q1
+            j_to_qf.update(newassignments)
+            c = c//l
+    return j_to_qf
 
 ## Frobenius matrix
 # The following gives a matrix that represents
@@ -526,6 +642,24 @@ def x0l_fp_card(p,l):
     return card
 
 
+
+####
+# Isogeny classes #
+
+
+
+class IsogClassFp:
+    def __init__(self,a:int,p:int):
+        self.char = p
+        self.trace_frob = a
+        self.disc = a**2-4*p
+        d,c = discfac(self.disc)
+        self.fundisc = d
+        self.cond = c
+        self.sig_to_qf_dict = sig_to_qfs_dict(a,p)
+        self.is_supersingular = (a%p==0)
+        self.card = p-a+1
+        
 
 ########################
 # Elliptic curve class #
